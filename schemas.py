@@ -2,47 +2,66 @@
 Database Schemas
 
 Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
 Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Model name lowercased is used as the collection name.
 """
+from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, Field, EmailStr
+from datetime import datetime
 
-from pydantic import BaseModel, Field
-from typing import Optional
+# Core user profile stored by JWT subject (phone/email) as user_id
+class Profile(BaseModel):
+    user_id: str = Field(..., description="JWT subject identifier")
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[EmailStr] = None
+    preferred_language: Optional[str] = Field(default="en")
+    state: Optional[str] = None
+    district: Optional[str] = None
+    village: Optional[str] = None
+    occupation: Optional[str] = None
+    land_size: Optional[float] = None
 
-# Example schemas (replace with your own):
+class ChatMessage(BaseModel):
+    user_id: str
+    session_id: Optional[str] = None
+    role: str = Field(..., description="user or assistant")
+    content: str
+    language: Optional[str] = "en"
+    state: Optional[str] = None
+    district: Optional[str] = None
+    sources: List[Dict[str, Any]] = []
+    confidence: Optional[float] = None
+    verified: Optional[bool] = None
 
-class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+class Complaint(BaseModel):
+    user_id: str
+    text: str
+    image_url: Optional[str] = None
+    state: Optional[str] = None
+    district: Optional[str] = None
+    location: Optional[str] = None
+    status: str = "filed"
+    timeline: List[Dict[str, str]] = []
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+class Bookmark(BaseModel):
+    user_id: str
+    kind: str = Field(..., description="e.g., scheme")
+    ref_id: str = Field(..., description="external reference id like scheme id")
+    data: Dict[str, Any] = {}
 
-# Add your own schemas here:
-# --------------------------------------------------
+class RagDoc(BaseModel):
+    user_id: Optional[str] = None  # global if None
+    source_type: str = Field(..., description="text|url|pdf|youtube|csv")
+    title: Optional[str] = None
+    url: Optional[str] = None
+    language: Optional[str] = "en"
+    tags: List[str] = []
+    chunk: str = Field(..., description="stored content chunk")
+    chunk_index: int = 0
+    doc_id: Optional[str] = None  # logical doc grouping id
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+# Helper envelope for timestamps (not enforced here; database.py adds timestamps)
+class Timestamped(BaseModel):
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
